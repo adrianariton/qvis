@@ -1,0 +1,65 @@
+.hoverable{
+    transition: all 0.1s ease;
+}
+.hoverable:hover{
+    transform: scale(1.1);
+}
+.hstack{
+    display:flex;
+    flex-direction: row;
+}
+
+.zstack{
+    display:flex;
+    flex-direction: row;
+}
+
+.zstack, .zstack > *{
+    transition: all 0.3s ease;
+}
+
+.zstack:not(.static, .opacity) .active{
+    transition: all 0.3s ease;
+    width: 100%;
+    overflow: hidden;
+
+}
+
+.zstack:not(.static, .opacity) > :not(.active){
+    transition: all 0.3s ease;
+    width: 0%;
+    overflow: hidden;
+}
+
+.zstack.static .active{
+    overflow: hidden;
+
+}
+
+.zstack.static > :not(.active){
+    width: 0px;
+    overflow: hidden;
+}
+
+.zstack.opacity .active{
+    transition: all 0.3s ease;
+    opacity: 1;
+
+}
+
+.zstack.opacity > :not(.active){
+    transition: all 0.3s ease;
+    opacity: 0;
+}
+
+.menufigs {
+    display:flex;
+    flex-direction: row;
+    width: 1200px;
+    justify-content: space-around;
+    background-color: rgb(242, 242, 247);
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+
