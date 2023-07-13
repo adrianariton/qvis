@@ -1,3 +1,4 @@
+import JSServe.TailwindDashboard as D
 
 ## TODO: config ad comment the srtyle
 formatstyle=DOM.style("""
@@ -16,6 +17,18 @@ formatstyle=DOM.style("""
     .hoverable.border:hover, .stay.border{
         border: 2px solid black;
     }
+
+    .hoverable.border.white{
+        transition: all 0.1s ease;
+        border: 2px solid transparent;
+        padding: 4px;
+        padding-bottom: 0px;
+
+    }
+    .hoverable.border.white:hover, .stay.white.border{
+        border: 2px solid white;
+    }
+
 
     .hstack{
         display:flex;
@@ -57,6 +70,21 @@ formatstyle=DOM.style("""
         overflow: hidden;
     }
 
+    .zstack:.whoop .active{
+        transition: all 0.3s ease;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+
+    }
+
+    .zstack.whoop > :not(.active){
+        transition: all 0.3s ease;
+        width: 0%;
+        height: 0%;
+        overflow: hidden;
+    }
+
     .zstack.static .active{
         overflow: hidden;
 
@@ -76,14 +104,6 @@ formatstyle=DOM.style("""
     .zstack.opacity > :not(.active){
         transition: all 0.1s ease;
         opacity: 0;
-    }
-
-    .menufigs {
-        display:flex;
-        flex-direction: row;
-        justify-content: space-around;
-        background-color: rgb(242, 242, 247);
-        padding-top: 20px;
     }
 
     .upper{
@@ -173,4 +193,39 @@ function classstack!(item; toggleclasses=[], observable=nothing, session=nothing
     end
 
     return item
+end
+
+button(item; class="", style="") = hoverable(item; class=class, style=style)
+function button!(item; observable=nothing, session=nothing, class="", style="", type=:toggle, cap=3, step=1, md=false)
+    t = D.Button(item; class=class, style=style)
+    on(t) do event
+        if type == :toggle
+            observable[] = !observable[]
+        elseif type == :increase
+            observable[] = observable[] + step
+        elseif type == :decrease
+            observable[] = observable[] - step
+        elseif type == :increasemod
+            observable[] = observable[] + step
+            if observable[] >= cap + 1
+                observable[] = 1
+            end
+        elseif type == :decreasemod
+            observable[] = observable[] - step
+            if observable[] <= 0
+                observable[] = cap
+            end
+        elseif type == :increasecap
+            observable[] = observable[] + step
+            if observable[] >= cap + 1
+                observable[] = observable[] - step
+            end
+        elseif type == :decreasecap
+            observable[] = observable[] - step
+            if observable[] <= 0
+                observable[] =  observable[] + step
+            end
+        end
+    end
+    return t
 end

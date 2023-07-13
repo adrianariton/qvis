@@ -3,15 +3,20 @@ using WGLMakie
 WGLMakie.activate!()
 using JSServe
 using Markdown
+import JSServe.TailwindDashboard as D
 
 
 # 1. LOAD LAYOUT HELPER FUNCTION AND UTILSm    
 include("layout_utils.jl")
 
 ## config sizes TODO: make linear w.r.t screen size
+# Change between color schemes by uncommentinh lines 17-18
 config = Dict(
     :resolution => (1400, 700), #used for the main figures
-    :smallresolution => (280, 160) #used for the menufigures
+    :smallresolution => (280, 160), #used for the menufigures
+    #:colorscheme => ["#4169e1", "white", "#4169e1", "white"]
+    :colorscheme => ["rgb(242, 242, 247)", "black", "rgb(242, 242, 247)", "black"]
+
 )
 
 
@@ -24,10 +29,19 @@ config = Dict(
 function layout_content(DOM, mainfigures #TODO: remove DOM param
     , menufigures, title_zstack, session, active_index)
     
-    menufigs_andtitles = wrap([vstack(hoverable!(menufigures[i], class="border"; session=session, observable=@lift($active_index == i)),
-                        title_zstack[i]; class="justify-center align-center ") for i in 1:3];
-                class="menufigs", style="width: $(config[:resolution][1])px")
-    
+    menufigs_style = """
+        display:flex;
+        flex-direction: row;
+        justify-content: space-around;
+        background-color: $(config[:colorscheme][1]);
+        padding-top: 20px;
+        width: $(config[:resolution][1])px;
+    """
+    menufigs_andtitles = wrap([
+        vstack(
+            hoverable!(menufigures[i], class="border $(config[:colorscheme][2])"; session=session, observable=@lift($active_index == i)),
+                    title_zstack[i]; class="justify-center align-center ") 
+        for i in 1:3]; class="menufigs", style=menufigs_style)
    
     activefig = zstack!(
                 active(mainfigures[1]),
@@ -170,7 +184,7 @@ landing = App() do session::Session
         titles_zstack[i] = zstack!(titles_zstack[i], wrap(""), wrap(""); 
                                         observable=@lift(($hoveredidx == i || $activeidx == i)),
                                         session=session,
-                                        class="opacity")
+                                        class="opacity", style="""color: $(config[:colorscheme][2]);""")
     end
 
     # Obtain reactive layout of the figures
@@ -180,24 +194,81 @@ landing = App() do session::Session
     # Add title to the right in the form of a ZStack
     titles_div = [DOM.h1(t) for t in titles]
     titles_div[1] = active(titles_div[1])
-    titles_div = zstack!(titles_div; observable=activeidx, session=session, class="static") # static = no animation
+    titles_div = zstack!(titles_div; observable=activeidx, session=session, class="static"
+    , style="""color: $(config[:colorscheme][4]);""") # static = no animation
     
     
-    return hstack(layout, hstack(titles_div; style="padding: 20px; 
-                                background-color: rgb(229, 229, 236);"); style="width: 100%;")
+    return hstack(layout, hstack(titles_div; style="padding: 20px; margin-left: 10px;
+                                background-color: $(config[:colorscheme][3]);"); style="width: 100%;")
 
+end
+
+landing2 = App() do session::Session
+    
+    # Active index: 1 2 or 3
+    #   1: the first a.k.a alpha (Entanglement Generation) figure is active
+    #   2: the second a.k.a beta (Entanglement Swapping) figure is active    
+    #   3: the third a.k.a gamma (Entanglement Purification) figure is active
+    activeidx = Observable(1)
+    hoveredidx = Observable(0)
+
+    # Create the buttons and the mainfigures
+    mainfigures = [Figure(backgroundcolor=:white,  resolution=config[:resolution]) for _ in 1:3]
+    buttonstyle = """
+        background-color: $(config[:colorscheme][1]);
+        color: $(config[:colorscheme][2]);
+        border: none !important;
+    """
+    buttons = [button!(wrap(DOM.h1("<")); observable=activeidx, session=session, cap=3, type=:decreasecap, style=buttonstyle),
+               button!(wrap(DOM.h1(">")); observable=activeidx, session=session, cap=3, type=:increasecap, style=buttonstyle)]
+    
+    # Titles of the plots
+    titles= ["Entanglement Generation",
+    "Entanglement Swapping",
+    "Entanglement Purification"]
+    
+
+    # Using the aforementioned plot function to plot for each figure array
+    plot(mainfigures)
+
+    
+    activefig = zstack!(
+                active(mainfigures[1]),
+                wrap(mainfigures[2]),
+                wrap(mainfigures[3]);
+                session=session, observable=activeidx,
+                style="width: $(config[:resolution][1])px",
+                class="whoop")
+    
+
+    layout = hstack(buttons[1], activefig, buttons[2])
+    # Add title to the right in the form of a ZStack
+    titles_div = [DOM.h1(t) for t in titles]
+    titles_div[1] = active(titles_div[1])
+    titles_div = zstack!(titles_div; observable=activeidx, session=session, class="static",
+                    style="""color: $(config[:colorscheme][4]);""") # static = no animation
+    
+    
+    return hstack(formatstyle, layout, hstack(titles_div; style="padding: 20px;  margin-left: 10px;
+                                background-color:  $(config[:colorscheme][3]);"); style="width: 100%;")
+
+end
+
+nav = App() do session::Session
+    return vstack(DOM.a("LANDING", href="/1"), DOM.a("LANDING2", href="/2"))
 end
 
 ##
 # Serve the Makie app
-
 isdefined(Main, :server) && close(server);
 port = parse(Int, get(ENV, "QS_COLORCENTERMODCLUSTER_PORT", "8888"))
 interface = get(ENV, "QS_COLORCENTERMODCLUSTER_IP", "127.0.0.1")
 proxy_url = get(ENV, "QS_COLORCENTERMODCLUSTER_PROXY", "")
 server = JSServe.Server(interface, port; proxy_url);
 JSServe.HTTPServer.start(server)
-JSServe.route!(server, "/" => landing);
+JSServe.route!(server, "/" => nav);
+JSServe.route!(server, "/1" => landing);
+JSServe.route!(server, "/2" => landing2);
 
 ##
 
