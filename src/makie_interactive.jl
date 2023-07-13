@@ -14,8 +14,8 @@ include("layout_utils.jl")
 config = Dict(
     :resolution => (1400, 700), #used for the main figures
     :smallresolution => (280, 160), #used for the menufigures
-    #:colorscheme => ["#4169e1", "white", "#4169e1", "white"]
-    :colorscheme => ["rgb(242, 242, 247)", "black", "rgb(242, 242, 247)", "black"]
+    :colorscheme => ["#4169e1", "white", "#000529", "white"]
+    #:colorscheme => ["rgb(242, 242, 247)", "black", "rgb(242, 242, 247)", "black"]
 
 )
 
