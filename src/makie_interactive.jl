@@ -14,7 +14,7 @@ include("layout_utils.jl")
 config = Dict(
     :resolution => (1400, 700), #used for the main figures
     :smallresolution => (280, 160), #used for the menufigures
-    :colorscheme => ["#4169e1", "white", "#000529", "white"]
+    :colorscheme => ["rgb(242, 242, 247)", "black", "#000529", "white"]
     #:colorscheme => ["rgb(242, 242, 247)", "black", "rgb(242, 242, 247)", "black"]
 
 )
@@ -39,8 +39,11 @@ function layout_content(DOM, mainfigures #TODO: remove DOM param
     """
     menufigs_andtitles = wrap([
         vstack(
-            hoverable!(menufigures[i], class="border $(config[:colorscheme][2])"; session=session, observable=@lift($active_index == i)),
-                    title_zstack[i]; class="justify-center align-center ") 
+            hoverable!(menufigures[i], anim=[:border], class="$(config[:colorscheme][2])";
+                    session=session, observable=@lift($active_index == i)),
+            title_zstack[i];
+            class="justify-center align-center "    
+            ) 
         for i in 1:3]; class="menufigs", style=menufigs_style)
    
     activefig = zstack!(
@@ -48,6 +51,7 @@ function layout_content(DOM, mainfigures #TODO: remove DOM param
                 wrap(mainfigures[2]),
                 wrap(mainfigures[3]);
                 session=session, observable=active_index,
+                anim=[:whoop],
                 style="width: $(config[:resolution][1])px")
     
     content = Dict(
@@ -184,7 +188,7 @@ landing = App() do session::Session
         titles_zstack[i] = zstack!(titles_zstack[i], wrap(""), wrap(""); 
                                         observable=@lift(($hoveredidx == i || $activeidx == i)),
                                         session=session,
-                                        class="opacity", style="""color: $(config[:colorscheme][2]);""")
+                                        anim=[:opacity], style="""color: $(config[:colorscheme][2]);""")
     end
 
     # Obtain reactive layout of the figures
@@ -194,7 +198,7 @@ landing = App() do session::Session
     # Add title to the right in the form of a ZStack
     titles_div = [DOM.h1(t) for t in titles]
     titles_div[1] = active(titles_div[1])
-    titles_div = zstack!(titles_div; observable=activeidx, session=session, class="static"
+    titles_div = zstack!(titles_div; observable=activeidx, session=session, anim=[:static]
     , style="""color: $(config[:colorscheme][4]);""") # static = no animation
     
     
@@ -219,8 +223,8 @@ landing2 = App() do session::Session
         color: $(config[:colorscheme][2]);
         border: none !important;
     """
-    buttons = [button!(wrap(DOM.h1("<")); observable=activeidx, session=session, cap=3, type=:decreasecap, style=buttonstyle),
-               button!(wrap(DOM.h1(">")); observable=activeidx, session=session, cap=3, type=:increasecap, style=buttonstyle)]
+    buttons = [button!(wrap(DOM.h1("〈")); observable=activeidx, session=session, cap=3, type=:decreasecap, style=buttonstyle),
+               button!(wrap(DOM.h1("〉")); observable=activeidx, session=session, cap=3, type=:increasecap, style=buttonstyle)]
     
     # Titles of the plots
     titles= ["Entanglement Generation",
@@ -231,21 +235,20 @@ landing2 = App() do session::Session
     # Using the aforementioned plot function to plot for each figure array
     plot(mainfigures)
 
-    
+    # Obtain the reactive layout
     activefig = zstack!(
                 active(mainfigures[1]),
                 wrap(mainfigures[2]),
                 wrap(mainfigures[3]);
                 session=session, observable=activeidx,
-                style="width: $(config[:resolution][1])px",
-                class="whoop")
+                style="width: $(config[:resolution][1])px")
     
 
     layout = hstack(buttons[1], activefig, buttons[2])
     # Add title to the right in the form of a ZStack
     titles_div = [DOM.h1(t) for t in titles]
     titles_div[1] = active(titles_div[1])
-    titles_div = zstack!(titles_div; observable=activeidx, session=session, class="static",
+    titles_div = zstack!(titles_div; observable=activeidx, session=session, anim=[:static],
                     style="""color: $(config[:colorscheme][4]);""") # static = no animation
     
     

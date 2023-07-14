@@ -1,118 +1,6 @@
 import JSServe.TailwindDashboard as D
 
-## TODO: config ad comment the srtyle
-formatstyle=DOM.style("""
-    .hoverable:not(.border){
-        transition: all 0.1s ease;
-    }
-    .hoverable:not(.border):hover, .stay:not(.border){
-        transform: scale(1.1);
-    }
-
-    .hoverable.border{
-        transition: all 0.1s ease;
-        border: 2px solid transparent;
-
-    }
-    .hoverable.border:hover, .stay.border{
-        border: 2px solid black;
-    }
-
-    .hoverable.border.white{
-        transition: all 0.1s ease;
-        border: 2px solid transparent;
-        padding: 4px;
-        padding-bottom: 0px;
-
-    }
-    .hoverable.border.white:hover, .stay.white.border{
-        border: 2px solid white;
-    }
-
-
-    .hstack{
-        display:flex;
-        flex-direction: row;
-    }
-
-    .vstack{
-        display: flex;
-        flex-direction: column;
-    }
-
-    .align-center{
-        align-items: center;
-    }
-
-    .justify-center{
-        justify-content: center;
-    }
-
-    .zstack{
-        display:flex;
-        flex-direction: row;
-    }
-
-    .zstack, .zstack > *{
-        transition: all 0.3s ease;
-    }
-
-    .zstack:not(.static, .opacity) .active{
-        transition: all 0.3s ease;
-        width: 100%;
-        overflow: hidden;
-
-    }
-
-    .zstack:not(.static, .opacity) > :not(.active){
-        transition: all 0.3s ease;
-        width: 0%;
-        overflow: hidden;
-    }
-
-    .zstack:.whoop .active{
-        transition: all 0.3s ease;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-
-    }
-
-    .zstack.whoop > :not(.active){
-        transition: all 0.3s ease;
-        width: 0%;
-        height: 0%;
-        overflow: hidden;
-    }
-
-    .zstack.static .active{
-        overflow: hidden;
-
-    }
-
-    .zstack.static > :not(.active){
-        width: 0px;
-        overflow: hidden;
-    }
-
-    .zstack.opacity .active{
-        transition: all 0.1s ease;
-        opacity: 1;
-
-    }
-
-    .zstack.opacity > :not(.active){
-        transition: all 0.1s ease;
-        opacity: 0;
-    }
-
-    .upper{
-        text-transform: uppercase;
-    }
-
-
-    """)
-
+animtoclass(anim) = join(pushfirst!([String(s) for s in anim], ""), " anim-")
 ###################### 1. Helper functions for UX ######################
 #   Functions that add css classes to DOM.div elements in order to 
 #   createa a nice UX experience and also cleaner code
@@ -120,18 +8,18 @@ formatstyle=DOM.style("""
 # Scene content to md
 markdowned(figure) = md"""$(figure.scene)"""
 
-# Equivalend of DOM.div
+# Equivalent of DOM.div
 wrap(content...; class="", style="", md=false) = DOM.div(JSServe.MarkdownCSS,
                                             JSServe.Styling,
                                             md ? [markdowned(i) for i in content] : content,
-                                            style=style, class=class)
+                                            style=style*"; position: relative;", class=class)
 
 # DOM.div + add hoverable class
-hoverable(item...; class="", style="", md=false) = wrap(item; class="hoverable "*class, style=style, md=md)
+hoverable(item...; class="", style="", anim=[:default], md=false) = wrap(item; class="hoverable "*class*" "*animtoclass(anim), style=style, md=md)
 
 # hoverable + remain active on observable==1
-function hoverable!(item...; observable=nothing, session=nothing, class="", style="", md=false)
-    return classstack!(hoverable(item; class=class, style=style, md=md);
+function hoverable!(item...; observable=nothing, session=nothing, anim=[:default], class="", style="", md=false)
+    return classstack!(hoverable(item; anim=anim, class=class, style=style, md=md);
                     observable=observable, session=session, height=2,
                     toggleclasses=["stay", "_"])
 end
@@ -146,12 +34,12 @@ active(item...; class="", style="", md=false) = wrap(item; class="active "*class
 
 # 2. Dinamic Z-stack, with active element selected by an observable with
 #    range 1:height, where height defaults to 3 but can be modified
-function zstack!(item...; observable=nothing, session=nothing, height=3, class="", style="", md=false) 
+function zstack!(item...; observable=nothing, session=nothing, height=3, class="", anim=[:default], style="", md=false) 
     if observable === nothing
-        return zstack(item; class=class, style=style, md=md)
+        return zstack(item; class=class*" "*animtoclass(anim), style=style, md=md)
     else
         # static zstack
-        item_div =  wrap(item; class="zstack "*class, style=style)
+        item_div =  wrap(item; class="zstack "*class*" "*animtoclass(anim), style=style)
 
         # add on(observable) event
         onjs(session, observable, js"""function on_update(new_value) {
@@ -174,7 +62,8 @@ hstack(item...; class="", style="", md=false) = wrap(item; class="hstack "*class
 # DOM.div + add vstack class => col of items
 vstack(item...; class="", style="", md=false) = wrap(item; class="vstack "*class, style=style)
 
-# not tested yet
+# Toggle classes from toggleclasses array based on the value of the observable
+# used as selector
 function classstack!(item; toggleclasses=[], observable=nothing, session=nothing, height=3, class="", style="", md=false) 
     if observable === nothing
         return item
@@ -195,7 +84,10 @@ function classstack!(item; toggleclasses=[], observable=nothing, session=nothing
     return item
 end
 
+# static button with no click event (equivalent to hoverable)
 button(item; class="", style="") = hoverable(item; class=class, style=style)
+
+# button which modifies the observable taken as parameter
 function button!(item; observable=nothing, session=nothing, class="", style="", type=:toggle, cap=3, step=1, md=false)
     t = D.Button(item; class=class, style=style)
     on(t) do event
@@ -227,5 +119,137 @@ function button!(item; observable=nothing, session=nothing, class="", style="", 
             end
         end
     end
-    return t
+    return wrap(t; class="btn")
 end
+
+## TODO: config ad comment the srtyle
+formatstyle=DOM.style("""
+    .hoverable.anim-default{
+        transition: all 0.1s ease;
+    }
+    .hoverable.anim-default:hover, .stay.anim-default{
+        transform: scale(1.1);
+    }
+
+    .hoverable.anim-border{
+        transition: all 0.1s ease;
+        border: 2px solid transparent;
+
+    }
+    .hoverable.anim-border:hover, .stay.anim-border{
+        border: 2px solid black;
+    }
+
+    .hoverable.anim-border.white{
+        transition: all 0.1s ease;
+        border: 2px solid transparent;
+        padding: 4px;
+        padding-bottom: 0px;
+
+    }
+    .hoverable.anim-border.white:hover, .stay.anim-white.border{
+        border: 2px solid white;
+    }
+
+
+    .hstack{
+        display:flex;
+        flex-direction: row;
+    }
+
+    .vstack{
+        display: flex;
+        flex-direction: column;
+    }
+
+    .align-center{
+        align-items: center;
+    }
+
+    .justify-center{
+        justify-content: center;
+    }
+
+    .zstack{
+        display:flex;
+        flex-direction: row;
+    }
+
+    .zstack, .zstack > *{
+        transition: all 0.3s ease;
+    }
+
+    .zstack.anim-default .active{
+        transition: all 0.3s ease;
+        width: 100%;
+        overflow: hidden;
+
+    }
+
+    .zstack.anim-default > :not(.active){
+        transition: all 0.3s ease;
+        width: 0%;
+        overflow: hidden;
+    }
+
+    .zstack.anim-whoop{
+        display: grid;
+    }
+
+    .zstack.anim-whoop > *{
+        grid-area: 1/1/1/1;
+
+    }
+
+    .zstack.anim-whoop .active{
+        z-index: 4;
+        position: absolute;
+        transition: all 0.3s ease;
+        transform: scale(1);
+        overflow: hidden;
+
+    }
+
+    .zstack.anim-whoop > :not(.active){
+        position: absolute;
+        z-index: 1;
+
+        transition: all 0.3s ease;
+        transform: scale(0);
+        overflow: hidden;
+    }
+
+    .zstack.anim-static .active{
+        overflow: hidden;
+
+    }
+
+    .zstack.anim-static > :not(.active){
+        width: 0px;
+        overflow: hidden;
+    }
+
+    .zstack.anim-opacity .active{
+        transition: all 0.1s ease;
+        opacity: 1;
+
+    }
+
+    .zstack.anim-opacity > :not(.active){
+        transition: all 0.1s ease;
+        opacity: 0;
+    }
+
+    .upper{
+        text-transform: uppercase;
+    }
+    .btn button{
+        height: 100%;
+        width: 100%;
+    }
+    .btn button:hover{
+        box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset, rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset !important;
+    }
+
+
+    """)
